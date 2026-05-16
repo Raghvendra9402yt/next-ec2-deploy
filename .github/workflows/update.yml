@@ -1,0 +1,29 @@
+name: "updating the content of the app in an ec2 instance"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: SSH into machine
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/next-ec2-deploy
+            rm -rf node_modules
+            git fetch origin
+            git reset --hard origin/main
+            npm ci || exit 1
+            npm run build || exit 1
+            pm2 restart all 
+            sudo nginx -s reload
